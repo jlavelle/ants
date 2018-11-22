@@ -67,7 +67,6 @@ data Langton = Langton
   { ant      :: Ant Int
   , rule     :: [Turn]
   , cells    :: Map (Int, Int) Int
-  , nextCell :: Cell Int
   }
 
 -- todo make a shitload more colors and stuff
@@ -75,10 +74,10 @@ colors :: [Color]
 colors = cycle [magenta, black, greyN 0.5, green, cyan, blue, rose, violet, azure, aquamarine, chartreuse, orange, yellow, white]
 
 initLangton :: [Turn] -> Langton
-initLangton r = Langton (Ant North 0 0) r M.empty (Cell 0 0 0)
+initLangton r = Langton (Ant North 0 0) r M.empty
 
 stepLangton :: Langton -> Langton
-stepLangton (Langton ant@(Ant _ x y) r cs _) = Langton ma r uc (Cell nc x y)
+stepLangton (Langton ant@(Ant _ x y) r cs) = Langton ma r uc
  where
   ma    = forward $ turnAnt (r !! color) ant
   uc    = M.insert (x, y) nc cs
@@ -86,26 +85,12 @@ stepLangton (Langton ant@(Ant _ x y) r cs _) = Langton ma r uc (Cell nc x y)
   nc    = mod (color + 1) (length r)
 
 renderLangton :: Float -> Langton -> Picture
-renderLangton s (Langton ant _ cs _) = c <> a
+renderLangton s (Langton ant _ cs) = c <> a
  where
   -- TODO: Dynamic grid based on viewport
   -- g = renderGrid (Grid 800 800 s)
   a  = renderAnt s (fmap fromIntegral ant)
   c = M.foldMapWithKey (\(x, y) i -> renderCell s $ fmap fromIntegral (Cell i x y)) cs
-
-renderNextCell :: Float -> Langton -> Picture
-renderNextCell s (Langton ant _ _ nc) = renderAnt s (fromIntegral <$> ant) <> renderCell s (fromIntegral <$> nc)
-
-unfoldLangton1 :: Float -> [Turn] -> [Picture]
-unfoldLangton1 s r = unfoldr go (mempty, initLangton r)
- where
-  go (p, l) = let p' = p <> renderNextCell s l
-              in Just (p', (p', stepLangton l))
-
-unfoldLangton2 :: [Turn] -> [Langton]
-unfoldLangton2 r = unfoldr go (initLangton r)
- where
-  go l = let l' = stepLangton l in Just (l', l')
 
 simulated :: IO ()
 simulated = simulate window white 10000 init render step
@@ -113,18 +98,6 @@ simulated = simulate window white 10000 init render step
   init     = initLangton [L,R,R,R,R,R,L,L,R]
   render   = renderLangton 5
   step _ _ = stepLangton
-
-unfolded1 :: IO ()
-unfolded1 = animate window white go
- where
-  go t = steps !! (floor $ t * 200)
-  steps = unfoldLangton1 5 [L,R,R,R,R,R,L,L,R]
-
-unfolded2 :: IO ()
-unfolded2 = animate window white go
- where
-  go t = renderLangton 5 $ steps !! (floor $ t * 10000)
-  steps = unfoldLangton2 [L,R,R,R,R,R,L,L,R]
 
 main :: IO ()
 main = simulated
