@@ -102,19 +102,29 @@ unfoldLangton1 s r = unfoldr go (mempty, initLangton r)
   go (p, l) = let p' = p <> renderNextCell s l
               in Just (p', (p', stepLangton l))
 
+unfoldLangton2 :: [Turn] -> [Langton]
+unfoldLangton2 r = unfoldr go (initLangton r)
+ where
+  go l = let l' = stepLangton l in Just (l', l')
+
 simulated :: IO ()
-simulated = simulate window white 1000 init render step
+simulated = simulate window white 10000 init render step
  where
   init     = initLangton [L,R,R,R,R,R,L,L,R]
   render   = renderLangton 5
   step _ _ = stepLangton
 
 unfolded1 :: IO ()
-unfolded1 = do
-  animate window white go
+unfolded1 = animate window white go
  where
   go t = steps !! (floor $ t * 200)
-  steps = unfoldLangton1 10 [L,R,R,R,R,R,L,L,R]
+  steps = unfoldLangton1 5 [L,R,R,R,R,R,L,L,R]
+
+unfolded2 :: IO ()
+unfolded2 = animate window white go
+ where
+  go t = renderLangton 5 $ steps !! (floor $ t * 10000)
+  steps = unfoldLangton2 [L,R,R,R,R,R,L,L,R]
 
 main :: IO ()
 main = simulated
