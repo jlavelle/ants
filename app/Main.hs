@@ -10,6 +10,7 @@ import Data.List (unfoldr)
 import qualified Data.Map.Strict as M
 import Data.Map.Strict (Map)
 import Debug.Trace (trace)
+import Data.Maybe (fromJust)
 
 window :: Display
 window = InWindow "Ants the Movie" (800, 800) (10, 10)
@@ -33,7 +34,7 @@ data Direction
   | West
   deriving (Show, Eq, Enum, Bounded)
 
-data Turn = L | R
+data Turn = L | R deriving Show
 
 rotateEnum :: (Eq a, Enum a, Bounded a) => Turn -> a -> a
 rotateEnum L c | c == minBound = maxBound
@@ -92,11 +93,18 @@ renderLangton s (Langton ant _ cs) = c <> a
   a  = renderAnt s (fmap fromIntegral ant)
   c = M.foldMapWithKey (\(x, y) i -> renderCell s $ fmap fromIntegral (Cell i x y)) cs
 
-simulated :: IO ()
-simulated = simulate window white 10000 init render step
+parseRule :: String -> Maybe [Turn]
+parseRule = traverse parseTurn
  where
-  init     = initLangton [L,R,R,R,R,R,L,L,R]
-  render   = renderLangton 5
+  parseTurn 'L' = Just L
+  parseTurn 'R' = Just R
+  parseTurn _   = Nothing
+
+simulated :: IO ()
+simulated = simulate window (greyN 0.1) 100000 init render step
+ where
+  init     = initLangton $ fromJust $ parseRule "LRRRRRLLR"
+  render   = renderLangton 1
   step _ _ = stepLangton
 
 main :: IO ()
