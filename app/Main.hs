@@ -34,13 +34,15 @@ data Direction
   | West
   deriving (Show, Eq, Enum, Bounded)
 
-data Turn = L | R deriving Show
+data Turn = L | R | N | U deriving Show
 
 rotateEnum :: (Eq a, Enum a, Bounded a) => Turn -> a -> a
 rotateEnum L c | c == minBound = maxBound
                | otherwise     = pred c
 rotateEnum R c | c == maxBound = minBound
                | otherwise     = succ c
+rotateEnum N c = c
+rotateEnum U c = rotateEnum L $ rotateEnum L c
 
 data Ant a = Ant Direction a a deriving Functor
 
@@ -71,9 +73,9 @@ data Langton = Langton
   , steps :: Int
   }
 
--- todo make a shitload more colors and stuff
+-- todo make more colors and stuff
 colors :: [Color]
-colors = cycle [magenta, black, greyN 0.5, green, cyan, blue, rose, violet, azure, aquamarine, chartreuse, orange, yellow, white]
+colors = cycle [magenta, violet, greyN 0.5, green, cyan, blue, rose, black, azure, aquamarine, chartreuse, orange, yellow, white]
 
 initLangton :: [Turn] -> Langton
 initLangton r = Langton (Ant North 0 0) r M.empty 0
@@ -97,14 +99,17 @@ renderLangton s (Langton ant _ cs steps) = c <> a
 parseRule :: String -> Maybe [Turn]
 parseRule = traverse parseTurn
  where
-  parseTurn 'L' = Just L
-  parseTurn 'R' = Just R
-  parseTurn _   = Nothing
+  parseTurn c = case c of
+    'L' -> Just L
+    'R' -> Just R
+    'N' -> Just N
+    'U' -> Just U
+    _   -> Nothing
 
 simulated :: IO ()
-simulated = simulate window (greyN 0.1) 100000 init render step
+simulated = simulate window (greyN 0.1) 100 init render step
  where
-  init     = initLangton $ fromJust $ parseRule "LRRRRRLLR"
+  init     = initLangton $ fromJust $ parseRule "RL"
   render   = renderLangton 1
   step _ _ = stepLangton
 
