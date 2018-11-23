@@ -65,9 +65,10 @@ renderCell :: Float -> Cell Float -> Picture
 renderCell s (Cell c x y) = translate (s*x - s/2) (s*y - s/2) $ color (colors !! c) $ rectangleSolid s s
 
 data Langton = Langton
-  { ant      :: Ant Int
-  , rule     :: [Turn]
-  , cells    :: Map (Int, Int) Int
+  { ant   :: Ant Int
+  , rule  :: [Turn]
+  , cells :: Map (Int, Int) Int
+  , steps :: Int
   }
 
 -- todo make a shitload more colors and stuff
@@ -75,10 +76,10 @@ colors :: [Color]
 colors = cycle [magenta, black, greyN 0.5, green, cyan, blue, rose, violet, azure, aquamarine, chartreuse, orange, yellow, white]
 
 initLangton :: [Turn] -> Langton
-initLangton r = Langton (Ant North 0 0) r M.empty
+initLangton r = Langton (Ant North 0 0) r M.empty 0
 
 stepLangton :: Langton -> Langton
-stepLangton (Langton ant@(Ant _ x y) r cs) = Langton ma r uc
+stepLangton (Langton ant@(Ant _ x y) r cs s) = Langton ma r uc (s + 1)
  where
   ma    = forward $ turnAnt (r !! color) ant
   uc    = M.insert (x, y) nc cs
@@ -86,7 +87,7 @@ stepLangton (Langton ant@(Ant _ x y) r cs) = Langton ma r uc
   nc    = mod (color + 1) (length r)
 
 renderLangton :: Float -> Langton -> Picture
-renderLangton s (Langton ant _ cs) = c <> a
+renderLangton s (Langton ant _ cs steps) = c <> a
  where
   -- TODO: Dynamic grid based on viewport
   -- g = renderGrid (Grid 800 800 s)
