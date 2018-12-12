@@ -67,8 +67,7 @@ renderCell :: Float -> Cell Float -> Picture
 renderCell s (Cell c x y) = translate (s*x - s/2) (s*y - s/2) $ color (colors !! c) $ rectangleSolid s s
 
 data Langton = Langton
-  { ants  :: [Ant Int]
-  , rule  :: [Turn]
+  { ants  :: [([Turn], Ant Int)]
   , cells :: Map (Int, Int) Int
   , steps :: Int
   }
@@ -77,26 +76,33 @@ data Langton = Langton
 colors :: [Color]
 colors = cycle [greyN 0.1, violet, magenta, green, cyan, blue, rose, black, azure, aquamarine, chartreuse, orange, yellow, white]
 
-initLangton :: [Turn] -> Langton
-initLangton r = Langton [(Ant North 0 0), (Ant North 50 50)] r M.empty 0
+initLangton :: [[Turn]] -> Langton
+initLangton r = Langton (zip r as) M.empty 0
+ where
+  as = [ Ant North 0 0
+       , Ant South 10 10
+       , Ant East 20 20
+       , Ant West 50 50
+       ]
 
 stepLangton :: Langton -> Langton
-stepLangton (Langton as r cs s) = Langton newAnts r (fold newCells <> cs) (s + 1)
+stepLangton (Langton as cs s) = Langton newAnts (fold newCells <> cs) (s + 1)
  where
   (newAnts, newCells) = unzip $ stepAnt <$> as
-  stepAnt ant@(Ant _ x y) = (ma, uc)
+  stepAnt (r, ant@(Ant _ x y)) = ((r, ma), uc)
    where
-    ma    = forward $ turnAnt (r !! color) ant
+    ma    = forward $ turnAnt (r !! idx) ant
     uc    = M.singleton (x, y) nc
     color = maybe 0 id $ M.lookup (x, y) cs
     nc    = mod (color + 1) (length r)
+    idx   = mod color (length r)
 
 renderLangton :: Float -> Langton -> Picture
-renderLangton s (Langton as _ cs steps) = cp <> ap
+renderLangton s (Langton as cs steps) = cp <> ap
  where
   -- TODO: Dynamic grid based on viewport
   -- g = renderGrid (Grid 800 800 s)
-  ap = foldMap (renderAnt s . fmap fromIntegral) as
+  ap = foldMap (renderAnt s . fmap fromIntegral . snd) as
   cp = M.foldMapWithKey (\(x, y) i -> renderCell s $ fmap fromIntegral (Cell i x y)) cs
 
 parseRule :: String -> Maybe [Turn]
@@ -112,7 +118,7 @@ parseRule = traverse parseTurn
 simulated :: IO ()
 simulated = simulate window (greyN 0.1) 10000 init render step
  where
-  init     = initLangton $ fromJust $ parseRule "RRLLLRLLLRRR"
+  init     = initLangton $ fromJust $ traverse parseRule ["RRLLLRLLLRRR", "RL", "LLRR", "RLR"]
   render   = renderLangton 1
   step _ _ = stepLangton
 
