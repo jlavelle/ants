@@ -67,7 +67,7 @@ renderCell :: Float -> Cell Float -> Picture
 renderCell s (Cell c x y) = translate (s*x - s/2) (s*y - s/2) $ color (colors !! c) $ rectangleSolid s s
 
 data Langton = Langton
-  { ant   :: Ant Int
+  { ants  :: [Ant Int]
   , rule  :: [Turn]
   , cells :: Map (Int, Int) Int
   , steps :: Int
@@ -75,26 +75,29 @@ data Langton = Langton
 
 -- todo make more colors and stuff
 colors :: [Color]
-colors = cycle [magenta, violet, greyN 0.5, green, cyan, blue, rose, black, azure, aquamarine, chartreuse, orange, yellow, white]
+colors = cycle [greyN 0.1, violet, magenta, green, cyan, blue, rose, black, azure, aquamarine, chartreuse, orange, yellow, white]
 
 initLangton :: [Turn] -> Langton
-initLangton r = Langton (Ant North 0 0) r M.empty 0
+initLangton r = Langton [(Ant North 0 0), (Ant North 50 50)] r M.empty 0
 
 stepLangton :: Langton -> Langton
-stepLangton (Langton ant@(Ant _ x y) r cs s) = Langton ma r uc (s + 1)
+stepLangton (Langton as r cs s) = Langton newAnts r (fold newCells <> cs) (s + 1)
  where
-  ma    = forward $ turnAnt (r !! color) ant
-  uc    = M.insert (x, y) nc cs
-  color = maybe 0 id $ M.lookup (x, y) cs
-  nc    = mod (color + 1) (length r)
+  (newAnts, newCells) = unzip $ stepAnt <$> as
+  stepAnt ant@(Ant _ x y) = (ma, uc)
+   where
+    ma    = forward $ turnAnt (r !! color) ant
+    uc    = M.singleton (x, y) nc
+    color = maybe 0 id $ M.lookup (x, y) cs
+    nc    = mod (color + 1) (length r)
 
 renderLangton :: Float -> Langton -> Picture
-renderLangton s (Langton ant _ cs steps) = c <> a
+renderLangton s (Langton as _ cs steps) = cp <> ap
  where
   -- TODO: Dynamic grid based on viewport
   -- g = renderGrid (Grid 800 800 s)
-  a  = renderAnt s (fmap fromIntegral ant)
-  c = M.foldMapWithKey (\(x, y) i -> renderCell s $ fmap fromIntegral (Cell i x y)) cs
+  ap = foldMap (renderAnt s . fmap fromIntegral) as
+  cp = M.foldMapWithKey (\(x, y) i -> renderCell s $ fmap fromIntegral (Cell i x y)) cs
 
 parseRule :: String -> Maybe [Turn]
 parseRule = traverse parseTurn
@@ -107,9 +110,9 @@ parseRule = traverse parseTurn
     _   -> Nothing
 
 simulated :: IO ()
-simulated = simulate window (greyN 0.1) 100 init render step
+simulated = simulate window (greyN 0.1) 10000 init render step
  where
-  init     = initLangton $ fromJust $ parseRule "RL"
+  init     = initLangton $ fromJust $ parseRule "RRLLLRLLLRRR"
   render   = renderLangton 1
   step _ _ = stepLangton
 
