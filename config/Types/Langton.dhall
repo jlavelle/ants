@@ -1,18 +1,10 @@
-let Direction = < North : {}
-                | South : {}
-                | East  : {}
-                | West  : {}
-                >
+   let Direction = ./Direction.dhall
 
-in let Turn = < L : {}
-              | R : {}
-              | N : {}
-              | U : {}
-              >
+in let Turn = ./Turn.dhall
 
 in let Ant = { direction : Direction
              , rule      : List Turn
-             , start     : { x : Natural, y : Natural }
+             , start     : { x : Integer, y : Integer }
              }
 
 in let Color = { r : Natural
